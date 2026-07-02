@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHL Assessment Recommender Client</title>
+    <!-- Modern Premium Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-page: #f8fafc;
+            --header-bg: #1a1a2e;
+            --send-btn: #7eca2f;
+            --send-btn-hover: #6db127;
+            --user-bubble: #1a1a2e;
+            --user-text: #ffffff;
+            --assistant-bubble: #ffffff;
+            --assistant-text: #1e293b;
+            --rec-bg: #f0fae6;
+            --rec-border: #c5e8a3;
+            --rec-text: #335912;
+            --dot-red: #f43f5e;
+            --dot-green: #10b981;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-page);
+            color: #334155;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header Styling */
+        header {
+            background-color: var(--header-bg);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-md);
+            z-index: 10;
+        }
+
+        .brand-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            background-color: var(--send-btn);
+            color: var(--header-bg);
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        h1 {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+
+        .controls-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            background-color: rgba(255, 255, 255, 0.08);
+            padding: 6px 12px;
+            border-radius: 9999px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--dot-red);
+            transition: background-color 0.3s ease;
+        }
+
+        .reset-btn {
+            background: transparent;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .reset-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Chat Workspace */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            background-color: white;
+            border-left: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        /* Message Thread Area */
+        .chat-thread {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Custom Scrollbar for Chat Thread */
+        .chat-thread::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-thread::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .chat-thread::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        /* Message Bubble Container */
+        .message-row {
+            display: flex;
+            width: 100%;
+        }
+
+        .message-row.user-row {
+            justify-content: flex-end;
+        }
+
+        .message-row.assistant-row {
+            justify-content: flex-start;
+        }
+
+        .message-row.system-row {
+            justify-content: center;
+        }
+
+        /* Actual Bubble Styling */
+        .bubble {
+            max-width: 75%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.5;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .user-row .bubble {
+            background-color: var(--user-bubble);
+            color: var(--user-text);
+            border-bottom-right-radius: 4px;
+        }
+
+        .assistant-row .bubble {
+            background-color: var(--assistant-bubble);
+            color: var(--assistant-text);
+            border-bottom-left-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .system-row .bubble {
+            background-color: #f1f5f9;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+            border-radius: 12px;
+            max-width: 90%;
+        }
+
+        .error-row .bubble {
+            background-color: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            font-weight: 500;
+        }
+
+        /* Recommendation Section inside Assistant turn */
+        .recommendation-container {
+            margin-top: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .rec-card {
+            background-color: var(--rec-bg);
+            border: 1px solid var(--rec-border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .rec-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .rec-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .rec-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1a3007;
+        }
+
+        .rec-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background-color: white;
+            border: 1px solid var(--rec-border);
+            color: var(--rec-text);
+            white-space: nowrap;
+        }
+
+        .rec-description {
+            font-size: 13px;
+            color: #4a5d3e;
+            line-height: 1.4;
+        }
+
+        .rec-link {
+            align-self: flex-start;
+            font-size: 12px;
+            font-weight: 600;
+            color: #4d930f;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+            transition: color 0.2s ease;
+        }
+
+        .rec-link:hover {
+            color: #3b700b;
+            text-decoration: underline;
+        }
+
+        /* Typing Indicator Styling */
+        .typing-row {
+            display: none;
+        }
+
+        .typing-bubble {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 14px 20px;
+            background-color: var(--assistant-bubble);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #94a3b8;
+            border-radius: 50%;
+            animation: bounce 1.3s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        @keyframes bounce {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-6px);
+            }
+        }
+
+        /* Input Controls Area */
+        .input-area {
+            padding: 18px 24px;
+            background-color: white;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .chat-input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .chat-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 14px;
+            color: #1e293b;
+            outline: none;
+            resize: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+            line-height: 1.4;
+        }
+
+        .chat-input:focus {
+            border-color: #cbd5e1;
+            box-shadow: 0 0 0 3px rgba(126, 202, 47, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+
+        .send-btn {
+            background-color: var(--send-btn);
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .send-btn:hover {
+            background-color: var(--send-btn-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .send-btn:active {
+            transform: translateY(0);
+        }
+
+        .send-btn svg {
+            fill: currentColor;
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Section -->
+    <header>
+        <div class="brand-section">
+            <div class="brand-icon">S</div>
+            <h1>SHL Assessment Recommender</h1>
+        </div>
+        <div class="controls-section">
+            <div class="connection-status">
+                <div id="health-dot" class="status-dot"></div>
+                <span id="health-text">API Checking...</span>
+            </div>
+            <button class="reset-btn" onclick="resetChat()">Reset Chat</button>
+        </div>
+    </header>
+
+    <!-- Chat main window -->
+    <main>
+        <!-- Message list wrapper -->
+        <div id="chat-thread" class="chat-thread">
+            <!-- Initial greeting -->
+            <div class="message-row assistant-row">
+                <div class="bubble">
+                    Hello! I am your SHL Assessment Recommender Assistant. 
+                    Tell me about the job role or key competency requirements you are hiring for, and I will match them to the best candidate assessments in our catalog.
+                </div>
+            </div>
+            
+            <!-- Typing row -->
+            <div id="typing-row" class="message-row assistant-row typing-row">
+                <div class="typing-bubble">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inputs container -->
+        <div class="input-area">
+            <div class="chat-input-wrapper">
+                <textarea 
+                    id="chat-input" 
+                    class="chat-input" 
+                    rows="1" 
+                    placeholder="Type your hiring requirements here (e.g., Mid-level Java developer)..."
+                    oninput="adjustInputHeight(this)"></textarea>
+            </div>
+            <button id="send-btn" class="send-btn" onclick="sendMessage()" title="Send message">
+                <svg viewBox="0 0 24 24">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+            </button>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = window.location.port === "8080" 
+            ? "http://127.0.0.1:8000" 
+            : window.location.origin;
+        let conversationHistory = [];
+
+        // Adjust typing textarea height dynamically
+        function adjustInputHeight(element) {
+            element.style.height = "auto";
+            element.style.height = (element.scrollHeight) + "px";
+            if (element.scrollHeight > 150) {
+                element.style.overflowY = "auto";
+                element.style.height = "150px";
+            } else {
+                element.style.overflowY = "hidden";
+            }
+        }
+
+        // Check health of API on load and periodically
+        async function checkHealth() {
+            const dot = document.getElementById("health-dot");
+            const text = document.getElementById("health-text");
+            try {
+                const res = await fetch(`${API_BASE}/health`, { method: "GET" });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.status === "ok") {
+                        dot.style.backgroundColor = "var(--dot-green)";
+                        text.innerText = "API Connected";
+                        return;
+                    }
+                }
+                throw new Error("Invalid status response");
+            } catch (err) {
+                dot.style.backgroundColor = "var(--dot-red)";
+                text.innerText = "API Disconnected";
+            }
+        }
+
+        // Show/hide typing indicator
+        function showTyping(show) {
+            const typingRow = document.getElementById("typing-row");
+            const chatContainer = document.getElementById("chat-thread");
+            if (show) {
+                typingRow.style.display = "flex";
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            } else {
+                typingRow.style.display = "none";
+            }
+        }
+
+        // Append bubble to chat thread
+        function addMessage(text, role, recommendations = []) {
+            const thread = document.getElementById("chat-thread");
+            const typingRow = document.getElementById("typing-row");
+            
+            const messageRow = document.createElement("div");
+            messageRow.className = `message-row ${role}-row`;
+            if (role === "error") {
+                messageRow.className = "message-row assistant-row error-row";
+            }
+            
+            const bubble = document.createElement("div");
+            bubble.className = "bubble";
+            
+            // Format newlines into HTML breaks
+            bubble.innerHTML = text.replace(/\n/g, "<br>");
+            
+            messageRow.appendChild(bubble);
+            
+            // Render recommendations if present
+            if (recommendations && recommendations.length > 0) {
+                const recContainer = document.createElement("div");
+                recContainer.className = "recommendation-container";
+                
+                recommendations.forEach(rec => {
+                    const card = document.createElement("div");
+                    card.className = "rec-card";
+                    
+                    // Human readable test types
+                    const typeMap = {
+                        "K": "Knowledge Test (K)",
+                        "P": "Personality/Motivation Test (P)",
+                        "A": "Ability/Cognitive Test (A)",
+                        "B": "Behavioral/SJT (B)",
+                        "C": "Cognitive Composite (C)",
+                        "S": "Simulation Test (S)"
+                    };
+                    const testTypeLabel = typeMap[rec.test_type] || `Test Type (${rec.test_type})`;
+                    
+                    card.innerHTML = `
+                        <div class="rec-header">
+                            <span class="rec-name">${rec.name}</span>
+                            <span class="rec-badge">${testTypeLabel}</span>
+                        </div>
+                        <a href="${rec.url}" class="rec-link" target="_blank">
+                            View Catalog Details &rarr;
+                        </a>
+                    `;
+                    recContainer.appendChild(card);
+                });
+                bubble.appendChild(recContainer);
+            }
+            
+            // Insert before the typing row
+            thread.insertBefore(messageRow, typingRow);
+            
+            // Scroll to bottom
+            const chatContainer = document.getElementById("chat-thread");
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Send chat message
+        async function sendMessage() {
+            const input = document.getElementById("chat-input");
+            const text = input.value.trim();
+            if (!text) return;
+            
+            // Clear input and restore default size
+            input.value = "";
+            adjustInputHeight(input);
+            
+            // 1. Add user message to UI
+            addMessage(text, "user");
+            
+            // 2. Add to internal memory
+            conversationHistory.push({ role: "user", content: text });
+            
+            // 3. Show typing indicator
+            showTyping(true);
+            
+            try {
+                // 4. Call POST /chat
+                const res = await fetch(`${API_BASE}/chat`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        messages: conversationHistory
+                    })
+                });
+                
+                if (!res.ok) {
+                    throw new Error(`Server returned ${res.status}`);
+                }
+                
+                const data = await res.json();
+                
+                // Hide typing indicator
+                showTyping(false);
+                
+                // 5. Add assistant response and recommendations to UI
+                addMessage(data.reply, "assistant", data.recommendations);
+                
+                // 6. Save assistant message to memory
+                conversationHistory.push({ role: "assistant", content: data.reply });
+                
+                // If end of conversation
+                if (data.end_of_conversation) {
+                    addMessage("Conversation marked as finished. You can clear history using the 'Reset Chat' button.", "system");
+                }
+                
+            } catch (err) {
+                console.error("Chat API error:", err);
+                showTyping(false);
+                addMessage("Unable to connect to the Recommender API. Please verify that the FastAPI backend is running locally on http://localhost:8000.", "error");
+            }
+        }
+
+        // Reset conversation
+        function resetChat() {
+            conversationHistory = [];
+            const thread = document.getElementById("chat-thread");
+            const typingRow = document.getElementById("typing-row");
+            
+            // Keep only the first row (the default greeting) and the typing row
+            const rows = thread.querySelectorAll(".message-row");
+            rows.forEach((row, idx) => {
+                if (idx > 0 && row !== typingRow) {
+                    thread.removeChild(row);
+                }
+            });
+            
+            addMessage("Conversation cleared. Start over by typing below.", "system");
+            const chatContainer = document.getElementById("chat-thread");
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Listen for keyboard Enter key
+        document.getElementById("chat-input").addEventListener("keydown", function(e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault(); // Prevent line break
+                sendMessage();
+            }
+        });
+
+        // Initialize health checks
+        window.onload = () => {
+            checkHealth();
+            // Poll health state every 5 seconds
+            setInterval(checkHealth, 5000);
+        };
+    </script>
+</body>
+</html>
