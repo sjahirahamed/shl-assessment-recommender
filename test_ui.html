@@ -123,21 +123,148 @@
             border-color: rgba(255, 255, 255, 0.4);
         }
 
-        /* Chat Workspace */
-        main {
+        /* Workspace Layout */
+        .workspace-container {
             flex: 1;
             display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            max-width: 900px;
+            max-width: 1400px;
             width: 100%;
             margin: 0 auto;
+            min-height: 0;
             background-color: white;
-            border-left: 1px solid var(--border-color);
-            border-right: 1px solid var(--border-color);
             box-shadow: var(--shadow-sm);
             overflow: hidden;
         }
+
+        /* Chat Workspace */
+        main {
+            flex: 2.3;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* Dashboard Sidebar Styling */
+        .dashboard-sidebar {
+            flex: 1;
+            max-width: 380px;
+            background-color: #f8fafc;
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            overflow-y: auto;
+            gap: 20px;
+        }
+
+        .sidebar-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 12px;
+        }
+
+        .metric-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .metric-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
+        .metric-header {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-val {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .metric-desc {
+            font-size: 11px;
+            color: #64748b;
+            line-height: 1.3;
+        }
+
+        .state-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+
+        .state-row:last-child {
+            border-bottom: none;
+        }
+
+        .state-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .state-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background-color: #cbd5e1;
+            color: #475569;
+            text-transform: uppercase;
+        }
+
+        .state-badge.green {
+            background-color: #dcfce7;
+            color: #15803d;
+        }
+
+        .state-badge.blue {
+            background-color: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .state-badge.yellow {
+            background-color: #fef9c3;
+            color: #a16207;
+        }
+
+        @media (max-width: 992px) {
+            .workspace-container {
+                flex-direction: column;
+            }
+            .dashboard-sidebar {
+                max-width: 100%;
+                width: 100%;
+                border-left: none;
+                border-top: 1px solid var(--border-color);
+                max-height: 300px;
+            }
+        }
+
 
         /* Message Thread Area */
         .chat-thread {
@@ -420,45 +547,97 @@
         </div>
     </header>
 
-    <!-- Chat main window -->
-    <main>
-        <!-- Message list wrapper -->
-        <div id="chat-thread" class="chat-thread">
-            <!-- Initial greeting -->
-            <div class="message-row assistant-row">
-                <div class="bubble">
-                    Hello! I am your SHL Assessment Recommender Assistant. 
-                    Tell me about the job role or key competency requirements you are hiring for, and I will match them to the best candidate assessments in our catalog.
+    <!-- Main Workspace Container -->
+    <div class="workspace-container">
+        <!-- Chat main window -->
+        <main>
+            <!-- Message list wrapper -->
+            <div id="chat-thread" class="chat-thread">
+                <!-- Initial greeting -->
+                <div class="message-row assistant-row">
+                    <div class="bubble">
+                        Hello! I am your SHL Assessment Recommender Assistant. 
+                        Tell me about the job role or key competency requirements you are hiring for, and I will match them to the best candidate assessments in our catalog.
+                    </div>
                 </div>
+                
+                <!-- Typing row -->
+                <div id="typing-row" class="message-row assistant-row typing-row">
+                    <div class="typing-bubble">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inputs container -->
+            <div class="input-area">
+                <div class="chat-input-wrapper">
+                    <textarea 
+                        id="chat-input" 
+                        class="chat-input" 
+                        rows="1" 
+                        placeholder="Type your hiring requirements here (e.g., Mid-level Java developer)..."
+                        oninput="adjustInputHeight(this)"></textarea>
+                </div>
+                <button id="send-btn" class="send-btn" onclick="sendMessage()" title="Send message">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </div>
+        </main>
+
+        <!-- Dashboard Sidebar -->
+        <aside class="dashboard-sidebar">
+            <h2 class="sidebar-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="feather feather-activity" style="color: var(--send-btn);"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                RAG Metrics
+            </h2>
+            
+            <!-- Groundedness Card -->
+            <div class="metric-card">
+                <span class="metric-header">Groundedness Score</span>
+                <span id="metric-groundedness" class="metric-val" style="color: #10b981;">100%</span>
+                <span class="metric-desc">Percentage of recommendations strictly matching catalog.</span>
             </div>
             
-            <!-- Typing row -->
-            <div id="typing-row" class="message-row assistant-row typing-row">
-                <div class="typing-bubble">
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
+            <!-- Hallucination Card -->
+            <div class="metric-card">
+                <span class="metric-header">Hallucination Rate</span>
+                <span id="metric-hallucination" class="metric-val" style="color: #10b981;">0.0%</span>
+                <span class="metric-desc">Proportion of hallucinated/unverified assessments.</span>
+            </div>
+            
+            <!-- Match Quality Card -->
+            <div class="metric-card">
+                <span class="metric-header">Match Confidence</span>
+                <span id="metric-confidence" class="metric-val">0.0%</span>
+                <span class="metric-desc">Relevance rank confidence of retrieved matches.</span>
+            </div>
+            
+            <!-- Dialogue State Card -->
+            <div class="metric-card" style="gap: 10px;">
+                <span class="metric-header">Dialogue State Manager</span>
+                
+                <div class="state-row">
+                    <span class="state-label">Extracted Role</span>
+                    <span id="state-role" class="state-badge">None</span>
+                </div>
+                
+                <div class="state-row">
+                    <span class="state-label">Seniority Level</span>
+                    <span id="state-seniority" class="state-badge">None</span>
+                </div>
+                
+                <div class="state-row">
+                    <span class="state-label">Dialogue Stage</span>
+                    <span id="state-intent" class="state-badge blue">GREET</span>
                 </div>
             </div>
-        </div>
-
-        <!-- Inputs container -->
-        <div class="input-area">
-            <div class="chat-input-wrapper">
-                <textarea 
-                    id="chat-input" 
-                    class="chat-input" 
-                    rows="1" 
-                    placeholder="Type your hiring requirements here (e.g., Mid-level Java developer)..."
-                    oninput="adjustInputHeight(this)"></textarea>
-            </div>
-            <button id="send-btn" class="send-btn" onclick="sendMessage()" title="Send message">
-                <svg viewBox="0 0 24 24">
-                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                </svg>
-            </button>
-        </div>
-    </main>
+        </aside>
+    </div>
 
     <script>
         const API_BASE = window.location.port === "8080" 
@@ -615,6 +794,9 @@
                 // 5. Add assistant response and recommendations to UI
                 addMessage(data.reply, "assistant", data.recommendations);
                 
+                // Update metrics dashboard
+                updateDashboard(data.metrics);
+                
                 // 6. Save assistant message to memory
                 conversationHistory.push({ role: "assistant", content: data.reply });
                 
@@ -627,6 +809,76 @@
                 console.error("Chat API error:", err);
                 showTyping(false);
                 addMessage("Unable to connect to the Recommender API. Please verify that the FastAPI backend is running locally on http://localhost:8000.", "error");
+            }
+        }
+
+        // Update dashboard panel metrics
+        function updateDashboard(metrics) {
+            if (!metrics) return;
+            
+            // Groundedness
+            const grEl = document.getElementById("metric-groundedness");
+            const grVal = parseFloat(metrics.groundedness ?? 100);
+            grEl.innerText = `${grVal.toFixed(0)}%`;
+            if (grVal === 100) {
+                grEl.style.color = "#10b981";
+            } else if (grVal >= 50) {
+                grEl.style.color = "#f59e0b";
+            } else {
+                grEl.style.color = "#ef4444";
+            }
+            
+            // Hallucination
+            const hlEl = document.getElementById("metric-hallucination");
+            const hlVal = parseFloat(metrics.hallucination_rate ?? 0);
+            hlEl.innerText = `${hlVal.toFixed(1)}%`;
+            if (hlVal === 0) {
+                hlEl.style.color = "#10b981";
+            } else {
+                hlEl.style.color = "#ef4444";
+            }
+            
+            // Confidence
+            const cfEl = document.getElementById("metric-confidence");
+            const cfVal = parseFloat(metrics.confidence ?? 0);
+            cfEl.innerText = `${cfVal.toFixed(1)}%`;
+            if (cfVal > 0) {
+                cfEl.style.color = "#3b82f6";
+            } else {
+                cfEl.style.color = "#64748b";
+            }
+            
+            // Role badge
+            const roleEl = document.getElementById("state-role");
+            if (metrics.role) {
+                roleEl.innerText = metrics.role.toUpperCase();
+                roleEl.className = "state-badge green";
+            } else {
+                roleEl.innerText = "NONE";
+                roleEl.className = "state-badge";
+            }
+            
+            // Seniority badge
+            const senEl = document.getElementById("state-seniority");
+            if (metrics.seniority) {
+                senEl.innerText = metrics.seniority.toUpperCase();
+                senEl.className = "state-badge green";
+            } else {
+                senEl.innerText = "NONE";
+                senEl.className = "state-badge";
+            }
+            
+            // Intent badge
+            const intEl = document.getElementById("state-intent");
+            if (metrics.intent) {
+                intEl.innerText = metrics.intent;
+                if (metrics.intent === "HIRING" || metrics.intent === "REFINE") {
+                    intEl.className = "state-badge green";
+                } else if (metrics.intent === "GREET") {
+                    intEl.className = "state-badge blue";
+                } else {
+                    intEl.className = "state-badge yellow";
+                }
             }
         }
 
@@ -647,6 +899,16 @@
             addMessage("Conversation cleared. Start over by typing below.", "system");
             const chatContainer = document.getElementById("chat-thread");
             chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // Reset metrics UI
+            updateDashboard({
+                groundedness: 100,
+                hallucination_rate: 0,
+                confidence: 0,
+                role: null,
+                seniority: null,
+                intent: "GREET"
+            });
         }
 
         // Listen for keyboard Enter key

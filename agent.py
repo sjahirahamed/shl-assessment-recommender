@@ -1,5 +1,5 @@
 from catalog import search, get_by_names, get_all
-from llm_client import generate, extract_seniority
+from llm_client import generate, extract_seniority, extract_role, GIBBERISH_RE
 import json
 import re
 
@@ -24,22 +24,16 @@ def process(messages: list[dict]) -> dict:
         latest      = user_msgs[-1]["content"] if user_msgs else ""
         total_turns = len(messages)
 
-        # Count how many clarifying questions agent has already asked
-        clarifying_keywords = [
-            "seniority", "level", "junior", "senior", "mid",
-            "years", "experience", "what role", "which role", "job role"
-        ]
-        clarifying_asked = sum(
-            1 for m in asst_msgs
-            if any(kw in m["content"].lower() for kw in clarifying_keywords)
-        )
+        # Count how many clarifying questions the agent has already asked
+        clarifying_asked = 0
+        for m in asst_msgs:
+            content = (m.get("content") or "").lower()
+            is_role_clarify = "what job role" in content or "clarify the job role" in content
+            is_sen_clarify  = "seniority level" in content or "what seniority" in content
+            if is_role_clarify or is_sen_clarify:
+                clarifying_asked += 1
 
-        # Whether recommendations were already given in this conversation
-        recs_given = any(
-            "shl.com" in m.get("content", "").lower()
-            or "based on your requirements" in m.get("content", "").lower()
-            for m in asst_msgs
-        )
+        # recs_given is now calculated below after job_role is extracted
 
         # ── STEP 1: One Gemini call to extract structured info ──────────────
         extract_prompt = f"""
@@ -105,6 +99,37 @@ Extraction rules:
         skills        = info.get("skills", [])
         compare_items = info.get("compare_items", [])
         role_changed  = bool(info.get("role_just_changed", False))
+
+        # Intercept and override greeting/gibberish intents using strict regex rules
+        user_clean = latest.lower().strip()
+        is_greet_phrase = any(w in user_clean for w in ["hi", "hello", "hey", "how are you", "greetings", "good morning", "good afternoon"])
+        has_no_role_word = extract_role(user_clean) is None
+        
+        is_gib = (
+            bool(GIBBERISH_RE.match(user_clean))
+            and extract_role(user_clean) is None
+            and extract_seniority(user_clean) is None
+        )
+        
+        if is_greet_phrase and has_no_role_word:
+            intent = "GREET"
+            job_role = None
+            seniority = None
+        elif is_gib:
+            intent = "GIBBERISH"
+            job_role = None
+            seniority = None
+
+        # Whether recommendations were already given for the current role in this conversation
+        recs_given = False
+        if job_role:
+            role_words = [w.strip() for w in re.split(r"\s+", job_role.lower()) if len(w.strip()) > 1]
+            for m in asst_msgs:
+                content = (m.get("content") or "").lower()
+                is_rec = "shl.com" in content or "based on your requirements" in content
+                if is_rec and all(w in content for w in role_words):
+                    recs_given = True
+                    break
 
         # ── Runtime seniority bleed & role switch guard ────────────────────────
         # Even if Gemini missed it: treat as a role switch if:
@@ -222,6 +247,9 @@ Give a clear, concise comparison:
         # Per spec: max 2 clarifying questions; then always recommend.
         # IMPORTANT: if role just changed (user switched to a new role), we MUST
         # ask seniority again even if we already gave recommendations for a prior role.
+
+
+
         should_ask_seniority = (
             seniority is None
             and clarifying_asked < 2
@@ -278,6 +306,7 @@ Tasks:
    - Explain why each recommended assessment is a perfect fit for this specific role and seniority.
    - Do NOT mention or recommend any tests that are not in the list above.
    - Ground all explanations strictly in the provided descriptions.
+   - CRITICAL: If the seniority is "not specified", do NOT mention or guess any seniority level (like junior, mid-level, senior, mid) in your response. Just explain the fit for the job role in general.
 
 
 Return ONLY a JSON object matching this schema (no markdown, no other text):
@@ -346,7 +375,13 @@ Return ONLY a JSON object matching this schema (no markdown, no other text):
                 }
                 for item in found
             ],
-            "end_of_conversation": user_done
+            "end_of_conversation": user_done,
+            "state": {
+                "job_role": job_role,
+                "seniority": seniority,
+                "intent": intent,
+                "skills": list(skills) if 'skills' in locals() and skills else []
+            }
         }
 
 

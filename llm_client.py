@@ -45,9 +45,9 @@ ROLE_PATTERNS = [
     (r"finance\s*(analyst|manager)?",                       "finance analyst"),
     # ── Standalone tech keyword fallbacks (no 'developer'/'engineer' suffix needed)
     # These MUST come after the more-specific patterns above
-    (r"\bjava\b",              "java developer"),
-    (r"\bpython\b",            "python developer"),
-    (r"\bsql\b",               "sql developer"),
+    (r"\bjava\b|\bjav\b",      "java developer"),
+    (r"\bpython\b|\bpyth\b|\bpythonn\b", "python developer"),
+    (r"\bsql\b|\bsqk\b|\bsgl\b|\bsqld\b", "sql developer"),
     (r"\bjavascript\b|\bjs\b", "javascript developer"),
     (r"\bml\b|\bai\b",         "machine learning engineer"),
     (r"\breact\b",             "frontend developer"),
@@ -275,7 +275,9 @@ def mock_generate(system_prompt: str, messages: list[dict]) -> str:
         # Get seniority hint
         seniority_match = re.search(r"seniority:\s*(\w+)", last, re.IGNORECASE)
         seniority_hint = seniority_match.group(1).strip().lower() if seniority_match else ""
-        seniority_text = f" ({seniority_hint} level)" if seniority_hint and seniority_hint != "not specified" else ""
+        if seniority_hint in ["not", "none", "not specified", "unspecified"]:
+            seniority_hint = ""
+        seniority_text = f" ({seniority_hint} level)" if seniority_hint else ""
         
         picks = pick_assessments(role_hint)
         # Construct dynamic grounded explanations matching catalog

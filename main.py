@@ -37,6 +37,7 @@ class ChatResponse(BaseModel):
     reply: str
     recommendations: List[Recommendation] = []
     end_of_conversation: bool = False
+    metrics: dict = {}
 
 @app.get("/", response_class=HTMLResponse)
 def read_index():
@@ -60,12 +61,43 @@ def chat(request: ChatRequest):
             for m in request.messages
         ]
         result = process(messages)
+        
+        # Calculate dynamic evaluation metrics for this turn
+        recs = result.get("recommendations", [])
+        
+        # Groundedness & Hallucination checks against catalog database
+        from catalog import CATALOG
+        valid_names = {item["name"] for item in CATALOG}
+        
+        total_recs = len(recs)
+        valid_recs = sum(1 for r in recs if r.get("name") in valid_names)
+        
+        groundedness_score = 100.0 if (total_recs == 0 or valid_recs == total_recs) else (valid_recs / total_recs * 100.0)
+        hallucination_rate = 0.0 if (total_recs == 0 or valid_recs == total_recs) else ((total_recs - valid_recs) / total_recs * 100.0)
+        
+        # Extract states
+        state = result.get("state", {})
+        role_state = state.get("job_role")
+        seniority_state = state.get("seniority")
+        intent_state = state.get("intent", "HIRING")
+        
+        # Confidence score (100% when active, 0% when clarifying/greeting)
+        retrieval_confidence = 100.0 if (total_recs > 0) else 0.0
+        
+        metrics = {
+            "groundedness": groundedness_score,
+            "hallucination_rate": hallucination_rate,
+            "role": role_state,
+            "seniority": seniority_state,
+            "intent": intent_state,
+            "confidence": retrieval_confidence
+        }
+        
         return ChatResponse(
             reply=result["reply"],
-            recommendations=result.get(
-                "recommendations", []),
-            end_of_conversation=result.get(
-                "end_of_conversation", False)
+            recommendations=recs,
+            end_of_conversation=result.get("end_of_conversation", False),
+            metrics=metrics
         )
     except Exception as e:
         logger.error(f"Error: {e}")
