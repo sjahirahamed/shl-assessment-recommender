@@ -55,20 +55,9 @@ http://localhost:8000/
 ```
 This loads the dynamic web client interface directly.
 
----
-
-## Deployment on Render
-
-This project is configured to deploy as a unified Web Service on Render.
-
-1. Go to your [Render Dashboard](https://dashboard.render.com/).
-2. Click **New +** and select **Blueprint**.
-3. Connect this GitHub repository.
-4. Render will read the configuration from `render.yaml` automatically.
-5. In the environment variables prompt, enter your `GEMINI_API_KEY`.
-6. Click **Approve** and let Render build and deploy.
 
 ---
+
 
 ## Architecture Detail: BM25 RAG
 To prevent LLM hallucination:
